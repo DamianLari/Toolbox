@@ -6,9 +6,13 @@ hoda_toolbox/niryo/__init__.py
 hoda_toolbox/tag/__init__.py
 hoda_toolbox/visualization/__init__.py
 hoda_toolbox/visualization/visualization.py
+hodabox/3d_transformation.py
+hodabox/__init__.py
 hodabox/calibration.py
 hodabox/maths.py
+hodabox/tag_detection.py
 hodabox/toolbox.py
+hodabox/visualization.py
 hodabox.egg-info/PKG-INFO
 hodabox.egg-info/SOURCES.txt
 hodabox.egg-info/dependency_links.txt

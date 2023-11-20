@@ -1,6 +1,6 @@
 [project]
 name = "hodabox"
-version = "0.1.3"
+version = "0.1.5"
 description = "Une courte description de votre projet"
 authors = [{name = "Votre Nom", email = "votre@email.com"}]
 readme = "README.md"

@@ -7,7 +7,7 @@ import os
 import apriltag
 import json
 from colorama import Fore, Style
-
+import transformation as transf
 class TagPoseProvider:
     def set_calibration_params(self, mtx, dist):
         #================================
@@ -356,3 +356,34 @@ class CameraConfig:
         return self.mtx, self.dist
 
 
+class HandEye:
+    def __init__(self):
+        pass
+
+    def compute_base_to_tag(self,cam_to_gripper,gripper_pose,transla,rota):
+        gripper_to_base_translation = np.array([gripper_pose[0], gripper_pose[1], gripper_pose[2]])
+        gripper_to_base_rotation = R.from_euler('ZYX', np.flip(np.array([gripper_pose[3], gripper_pose[4], gripper_pose[5]])), degrees=False)
+        
+        tag_to_camera_translation = np.array([transla[0], transla[1], transla[2]])
+        tag_to_camera_rotation = R.from_euler('ZYX',np.flip(np.array([rota[2], rota[1], rota[0]])), degrees=False)
+
+        t_cam_to_gripper = np.array([cam_to_gripper[0], cam_to_gripper[1], cam_to_gripper[2]])
+        R_cam_to_gripper = R.from_euler('ZYX', np.flip(np.array([cam_to_gripper[3], cam_to_gripper[4], cam_to_gripper[5]])), degrees=False)
+        
+        T_cam_to_gripper = transf.create_homogeneous_transform(R_cam_to_gripper,t_cam_to_gripper)
+        T_gripper_to_base = transf.create_homogeneous_transform(gripper_to_base_rotation.as_matrix(), gripper_to_base_translation)
+        T_tag_to_camera = transf.create_homogeneous_transform(tag_to_camera_rotation.as_matrix(), tag_to_camera_translation)
+
+        T_base_to_camera =T_gripper_to_base @ T_cam_to_gripper
+        T_base_to_tag=  T_gripper_to_base @ T_cam_to_gripper @ T_tag_to_camera
+
+        
+        #self.open3d_toolbox.displayTriedre([T_base_to_camera], ["Camera"], 0.05)
+        #self.open3d_toolbox.displayTriedre([T_gripper_to_base], ["Robot"], 0.1)
+        #self.open3d_toolbox.displayTriedre([T_base_to_tag], ["Tag"], 0.2)
+        
+        #self.open3d_toolbox.updateRenderer()
+
+        self.all_T_base_to_tag.append(T_base_to_tag)
+ 
+        time.sleep(0.5)

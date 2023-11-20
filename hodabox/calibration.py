@@ -5,7 +5,7 @@ import os
 import time
 
 
-class CalibrationProvider:
+class CalibrationIntrinsèqueProvider:
     #==========================================
     # Cette classe permet de fournir la matrice de calibration et les coefficients de distortion
     #==========================================
@@ -98,7 +98,7 @@ class CalibrationProvider:
 
         return os.path.join(grandparent_directory_path, file_name)
     
-
+    
     def do_calibration(self, calibration_file, file_name):
         #cam_number = 0
         for cam_number in range(len(calibration_file)):
@@ -130,11 +130,13 @@ class CalibrationProvider:
                         print("Pas assez de données pour effectuer la calibration.")
             #cam_number += 1
 
-    
-"""
-calib_test = CalibrationProvider(6,6)
-calib_test.do_calibration('calibration.json','images')
+class CalibrationHandEyeProvider:
+    def __init__(self):
+        pass
+
 
 """ 
 calib_test = CalibrationProvider(7,7)
 calib_test.do_calibration(['calib_nini.json'],['calib_images'])
+"""
+

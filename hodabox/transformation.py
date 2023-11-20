@@ -68,3 +68,8 @@ def transformation_error(ref_transform,all_T_base_to_tag):
 
     return mean_translation_error, mean_rotation_error
 
+def create_homogeneous_transform(R, t):
+        H=np.eye(4)
+        H[0:3,0:3]= R
+        H[0:3,3]=t
+        return H
