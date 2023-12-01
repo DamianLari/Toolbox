@@ -1,3 +1,6 @@
+import numpy as np
+
+
 def decomposer_en_facteurs_premiers(n):
         facteurs = []
         while n % 2 == 0:

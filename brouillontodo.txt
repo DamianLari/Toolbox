@@ -1,0 +1,60 @@
+///////// médianne et écart type
+# Data for calculation
+data = [1, 3, 5, 7, 9, 11]  # Midpoints of each interval
+coef = [1, 9, 4, 4, 2, 2]
+
+# Calculate the weighted mean (average)
+average = np.average(data, weights=coef)
+
+# Calculate the standard deviation
+# We create a list that repeats each duration the number of times it appears in the dataset
+all_data = []
+for duration, count in zip(data, coef):
+    all_data.extend([duration] * count)
+
+std_dev = np.std(all_data)
+
+average, std_dev
+
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Data
+budgets = np.array([8, 10, 12, 14, 16, 18])  # Budget publicitaire en millions d'euros
+revenues = np.array([40, 55, 55, 70, 75, 95])  # Chiffre d'affaire en millions d'euros
+
+# 1) Nuage de points
+plt.figure(figsize=(8, 5))
+plt.scatter(budgets, revenues, color='blue', label='Données')
+plt.xlabel('Budget Publicitaire (en millions €)')
+plt.ylabel('Chiffre d’Affaire (en millions €)')
+plt.title('Nuage de points des budgets publicitaires et des chiffres d’affaire')
+plt.grid(True)
+plt.legend()
+
+
+# 2) Coordonnées du point moyen G
+G_x = np.mean(budgets)
+G_y = np.mean(revenues)
+plt.scatter(G_x, G_y, color='red', label='Point moyen G')
+
+# 3) Points moyens G1 et G2
+G1_x, G2_x = np.mean(budgets[:3]), np.mean(budgets[3:])
+G1_y, G2_y = np.mean(revenues[:3]), np.mean(revenues[3:])
+plt.scatter([G1_x, G2_x], [G1_y, G2_y], color='green', label='Points moyens G1 et G2')
+
+# 4) Droite d’ajustement (G1 G2)
+coefficients = np.polyfit([G1_x, G2_x], [G1_y, G2_y], 1)
+polynomial = np.poly1d(coefficients)
+x_axis = np.linspace(budgets.min(), budgets.max(), 100)
+y_axis = polynomial(x_axis)
+plt.plot(x_axis, y_axis, color='purple', label='Droite d’ajustement (G1 G2)')
+
+plt.legend()
+plt.show()
+
+# Coefficients for later calculations
+coefficients, (G_x, G_y), (G1_x, G1_y), (G2_x, G2_y)
