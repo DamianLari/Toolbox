@@ -1,5 +1,7 @@
 import os
 import json
+import numpy as np
+
 def get_file_path_from_grandparent_folder(self, file_name, subfolder=''):
     #================================
     # Retourne le chemin absolu du fichier spécifié, en partant du répertoire parent du répertoire parent du répertoire courant.
@@ -40,3 +42,4 @@ def load_calib_data(calibration_file):
         except Exception as e:
             print("Erreur lors de la lecture du fichier de calibration :", e)
         return np.array(matr) , np.array(disto)
+
