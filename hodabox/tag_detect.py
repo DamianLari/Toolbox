@@ -1,3 +1,4 @@
+
 import cv2
 from cv2 import aruco
 import numpy as np
@@ -5,6 +6,9 @@ import scipy.spatial.transform as R
 import os
 import apriltag
 import json
+from colorama import Fore, Style
+import transformation as transf
+from scipy.spatial.transform import Rotation as R
 
 class TagPoseProvider:
     def set_calibration_params(self, mtx, dist):
@@ -354,82 +358,29 @@ class CameraConfig:
         return self.mtx, self.dist
 
 
-
-class TagDetection:
-    def __init__(self, tag_config,camera_config):
+class HandEye:
+    def __init__(self):
+        pass
+    
+    def from_T_to_rvec_tvec(self,T):
+        rvec = R.from_matrix(T[0:3, 0:3]).as_euler('ZYX', degrees=False)
+        tvec = T[0:3, 3]
+        return rvec,tvec
+    
+    def compute_base_to_tag(self,cam_to_gripper,gripper_pose,transla,rota):
+        gripper_to_base_translation = np.array([gripper_pose[0], gripper_pose[1], gripper_pose[2]])
+        gripper_to_base_rotation = R.from_euler('ZYX', np.flip(np.array([gripper_pose[3], gripper_pose[4], gripper_pose[5]])), degrees=False)
         
-        #self.camera_config = camera_config
-        self.tag_detection_provider = TagPoseProvider()
-        self.load_global_config(tag_config,camera_config)
+        tag_to_camera_translation = np.array([transla[0], transla[1], transla[2]])
+        tag_to_camera_rotation = R.from_euler('ZYX',np.flip(np.array([rota[2], rota[1], rota[0]])), degrees=False)
 
-        self.detector_callback()
-
-    def load_global_config(self,tag_list,camera_list):
-        #================================
-        # Charge la configuration des tags ainsi que des cameras.
-        # Args:
-        #   tag_list: Liste des tags.
-        #   camera_list: Liste des caméras.
-        #================================
-
-        #Créer un objet TagConfig pour chaque tag
-        self.tag_config = [TagConfig(tag['type'],tag['size'],tag['dict']) for tag in tag_list]
+        t_cam_to_gripper = np.array([cam_to_gripper[0], cam_to_gripper[1], cam_to_gripper[2]])
+        R_cam_to_gripper = R.from_euler('ZYX', np.flip(np.array([cam_to_gripper[3], cam_to_gripper[4], cam_to_gripper[5]])), degrees=False)
         
-        #Créer un objet CameraConfig pour chaque caméra
-        #Pour chaque caméra, on doit fournir :
-        #                                    le nom de la caméra
-        #                                    le chemin du dossier contenant les images (le chemin depuis la racine du projet)
-        #                                    la matrice de calibration et les coefficients de distorsion
-        self.camera_config = [CameraConfig(camera['name'],camera['images_folder'],*self.load_calib_data(self.tag_detection_provider.get_grandparent_file_path(camera['calibration_file'],'calib'))) for camera in camera_list]
-       
+        T_cam_to_gripper = transf.create_homogeneous_transform(R_cam_to_gripper,t_cam_to_gripper)
+        T_gripper_to_base = transf.create_homogeneous_transform(gripper_to_base_rotation.as_matrix(), gripper_to_base_translation)
+        T_tag_to_camera = transf.create_homogeneous_transform(tag_to_camera_rotation.as_matrix(), tag_to_camera_translation)
 
+        T_base_to_tag =  T_gripper_to_base @ T_cam_to_gripper @ T_tag_to_camera
 
-    def load_calib_data(self,calibration_file):
-        #================================
-        # Charge les données de calibration depuis le fichier spécifié.
-        # Args:
-        #   calibration_file: Chemin vers le fichier de calibration.
-        # Returns:
-        #   matr: Matrice de calibration.
-        #   disto: Coefficients de distorsion.
-        #================================
-        """
-        dist = np.array(camera_infos_msg.D)
-        mtx = np.array([camera_infos_msg.K[0:3], camera_infos_msg.K[3:6], camera_infos_msg.K[6:9]])
-        """
-        try:
-            with open(calibration_file) as f:
-                data = json.load(f)
-            matr = data["mtx"]
-            disto = data["dist"]
-          
-        except Exception as e:
-            print("Erreur lors de la lecture du fichier de calibration :", e)
-        return np.array(matr) , np.array(disto)
-
-
-    def detector_callback(self):
-        #================================
-        # Callback appelée lors de la réception d'un message sur le topic de l'image.
-        # Args:
-        #   image_msg: Message ROS contenant l'image sur laquelle les marqueurs doivent être détectés.
-        #================================
-        
-        for camera in self.camera_config:
-            print('camera',camera)
-            image_path = self.tag_detection_provider.get_grandparent_file_path(camera.image_folder)
-            file_list = os.listdir(image_path)
-            image_list = [file for file in file_list if file.endswith(".png")]
-            self.tag_detection_provider.set_calibration_params(*camera.get_calibration_params())
-            for img in image_list:
-                cv_image = self.tag_detection_provider.correct_image(cv2.imread(os.path.join(image_path,img)))
-                corners, ids, rvecs, tvecs = self.tag_detection_provider.detect_marker(cv_image,*self.tag_config[0].get_tag_params())  #TODO: enlever le [0] pour faire fonctionner avec plusieurs tags
-
-                self.create_aruco_data_msg(*self.tag_detection_provider.calculate_positions(ids, rvecs, tvecs), cv_image)
-        
-
-        all_poses = []
-        for i in range(len(id)):
-            pose = {"id": id[i], "rvec": rvecs[i], "tvec": tvecs[i]}
-            all_poses.append(pose)
-        print('all_poses',all_poses)
+        return T_base_to_tag

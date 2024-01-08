@@ -1,0 +1,160 @@
+
+def find_file_in_first_level_subdirectories(base_path, file_name):
+    if not os.path.isdir(base_path):
+        raise ValueError("Le chemin de base n'est pas un dossier valide")
+
+    for subdirectory in next(os.walk(base_path))[1]:
+        subdirectory_path = os.path.join(base_path, subdirectory)
+        file_path = find_file_in_directory(subdirectory_path, file_name)
+        if file_path:
+            return file_path
+
+    raise ValueError("Fichier non trouvé dans les sous-dossiers du premier niveau")
+
+def find_file_in_directory(directory_path, file_name):
+    for root, dirs, files in os.walk(directory_path):
+        if file_name in files:
+            return os.path.join(root, file_name)
+    return None
+
+
+def get_parent_path(base_path):
+    return os.path.dirname(base_path)
+
+def get_child_path(base_path):
+    child_directory_names = next(os.walk(base_path))[1]
+    if not child_directory_names:
+        raise ValueError("Aucun dossier enfant trouvé")
+    return os.path.join(base_path, child_directory_names[0])
+
+def get_cousin_path(base_path):
+    parent_path = os.path.dirname(base_path)
+    parent_children = next(os.walk(parent_path))[1]
+    cousin_directory_names = [d for d in parent_children if d != os.path.basename(base_path)]
+    if not cousin_directory_names:
+        raise ValueError("Aucun dossier cousin trouvé")
+    return os.path.join(parent_path, cousin_directory_names[0])
+
+def get_uncle_path(base_path):
+    grandparent_path = os.path.dirname(os.path.dirname(base_path))
+    grandparent_children = next(os.walk(grandparent_path))[1]
+    uncle_directory_names = [d for d in grandparent_children if d != os.path.basename(os.path.dirname(base_path))]
+    if not uncle_directory_names:
+        raise ValueError("Aucun dossier oncle trouvé")
+    return os.path.join(grandparent_path, uncle_directory_names[0])
+
+def get_nephew_path(base_path):
+    child_directory_path = get_child_path(base_path)
+    nephew_directory_names = next(os.walk(child_directory_path))[1]
+    if not nephew_directory_names:
+        raise ValueError("Aucun dossier neveu trouvé")
+    return os.path.join(child_directory_path, nephew_directory_names[0])
+
+def get_grandparent_path(base_path):
+    return os.path.dirname(os.path.dirname(base_path))
+
+def get_file_from_relative_path(base_path, file_name, relation_func, subfolder=''):
+    """
+    Obtenir le chemin du fichier souhaité en utilisant get_file_from_relative_path. 
+    Par exemple, pour obtenir un fichier dans le dossier "nephew" du dossier "child" du script :
+        base_path = get_child_path('/chemin/vers/votre/script')
+        file_path = get_file_from_relative_path(base_path, 'nom_du_fichier.txt', get_nephew_path)
+    """
+    target_directory_path = relation_func(base_path)
+    if subfolder:
+        target_directory_path = os.path.join(target_directory_path, subfolder)
+
+    file_path = os.path.join(target_directory_path, file_name)
+    if not os.path.exists(file_path):
+        raise ValueError("Le fichier spécifié n'existe pas dans le dossier cible")
+
+    return file_path
+
+
+def get_file_path_from_base(base_path, file_name, relation, subfolder=''):
+    if not os.path.isdir(base_path):
+        raise ValueError("Le chemin de base n'est pas un dossier valide")
+
+    if relation == 'parent':
+        target_directory_path = os.path.dirname(base_path)
+    elif relation == 'child':
+        # Première entrée répertoriée dans le dossier de base
+        child_directory_path = next(os.walk(base_path))[1][0]
+        target_directory_path = os.path.join(base_path, child_directory_path)
+    elif relation == 'cousin':
+        # Premier cousin du même niveau que le dossier de base
+        parent_path = os.path.dirname(base_path)
+        parent_children = next(os.walk(parent_path))[1]
+        cousin_directory_name = [d for d in parent_children if d != os.path.basename(base_path)][0]
+        target_directory_path = os.path.join(parent_path, cousin_directory_name)
+    elif relation == 'uncle':
+        # Premier oncle au même niveau que le parent du dossier de base
+        grandparent_path = os.path.dirname(os.path.dirname(base_path))
+        grandparent_children = next(os.walk(grandparent_path))[1]
+        uncle_directory_name = [d for d in grandparent_children if d != os.path.basename(os.path.dirname(base_path))][0]
+        target_directory_path = os.path.join(grandparent_path, uncle_directory_name)
+    elif relation == 'nephew':
+        # Premier neveu dans un sous-dossier "child"
+        child_directory_path = next(os.walk(base_path))[1][0]
+        child_full_path = os.path.join(base_path, child_directory_path)
+        nephew_directory_name = next(os.walk(child_full_path))[1][0]
+        target_directory_path = os.path.join(child_full_path, nephew_directory_name)
+    elif relation == 'grandparent':
+        target_directory_path = os.path.dirname(os.path.dirname(base_path))
+    else:
+        raise ValueError("Relation inconnue")
+
+    if subfolder:
+        target_directory_path = os.path.join(target_directory_path, subfolder)
+
+    file_path = os.path.join(target_directory_path, file_name)
+    if not os.path.exists(file_path):
+        raise ValueError("Le fichier spécifié n'existe pas dans le dossier cible")
+
+    return file_path
+
+
+def get_file_path(file_name, relation, subfolder=''):
+    """Parent: Répertoire directement au-dessus du répertoire courant.
+    Child: Un répertoire directement sous le répertoire courant.
+    Cousin: Un répertoire au même niveau que le répertoire parent.
+    Uncle: Un répertoire au même niveau que le répertoire grandparent.
+    Nephew: Un répertoire sous un répertoire "child".
+    Grandparent: Répertoire au-dessus du répertoire parent.
+    """
+    current_script_path = os.path.realpath(__file__)
+    parent_directory_path = os.path.dirname(current_script_path)
+    grandparent_directory_path = os.path.dirname(parent_directory_path)
+
+    if relation == 'parent':
+        target_directory_path = parent_directory_path
+    elif relation == 'child':
+        # Supposons que le dossier enfant est le premier répertoire dans le répertoire courant
+        child_directory_path = next(os.walk('.'))[1][0]
+        target_directory_path = os.path.join(parent_directory_path, child_directory_path)
+    elif relation == 'cousin':
+        # Supposons que le cousin est un autre dossier au même niveau que le répertoire parent
+        grandparent_children = next(os.walk(grandparent_directory_path))[1]
+        cousin_directory_name = [d for d in grandparent_children if d != os.path.basename(parent_directory_path)][0]
+        target_directory_path = os.path.join(grandparent_directory_path, cousin_directory_name)
+    elif relation == 'uncle':
+        # Supposons que l'oncle est un autre dossier au même niveau que le répertoire grandparent
+        great_grandparent_path = os.path.dirname(grandparent_directory_path)
+        great_grandparent_children = next(os.walk(great_grandparent_path))[1]
+        uncle_directory_name = [d for d in great_grandparent_children if d != os.path.basename(grandparent_directory_path)][0]
+        target_directory_path = os.path.join(great_grandparent_path, uncle_directory_name)
+    elif relation == 'nephew':
+        # Supposons que le neveu est un dossier sous un répertoire "child"
+        child_directory_path = next(os.walk('.'))[1][0]
+        child_full_path = os.path.join(parent_directory_path, child_directory_path)
+        nephew_directory_name = next(os.walk(child_full_path))[1][0]
+        target_directory_path = os.path.join(child_full_path, nephew_directory_name)
+    elif relation == 'grandparent':
+        target_directory_path = grandparent_directory_path
+    else:
+        raise ValueError("Relation inconnue")
+
+    if subfolder:
+        target_directory_path = os.path.join(target_directory_path, subfolder)
+
+    return os.path.join(target_directory_path, file_name)
